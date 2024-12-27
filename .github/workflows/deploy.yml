@@ -1,10 +1,10 @@
 name: Terraform Destroy
 
 on:
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:  # Manual trigger to run when needed
 
 jobs:
-  destroy:
+  terraform-destroy:
     name: 'Terraform Destroy'
     runs-on: ubuntu-latest
 
@@ -13,13 +13,11 @@ jobs:
       TF_VERSION: '1.9.8'       # Terraform version
 
     steps:
-    # Step 1: Checkout the correct branch
+    # Step 1: Checkout GitHub repository
     - name: 'Checkout GitHub repository'
-      uses: actions/checkout@v2
-      with:
-        ref: eks-modules  # Checkout the eks-modules branch
+      uses: actions/checkout@v3  # Use latest version of checkout
 
-    # Step 2: Configure AWS credentials
+    # Step 2: Configure AWS credentials (using aws-actions/configure-aws-credentials@v2)
     - name: 'Configure AWS credentials'
       uses: aws-actions/configure-aws-credentials@v2
       with:
@@ -27,25 +25,26 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    # Optional: Debugging step to ensure branch is correct
-    - name: 'Verify Current Branch'
-      run: echo "Branch: ${{ github.ref_name }}"
-
-    # Optional: Fail if not on eks-modules branch
-    - name: 'Ensure Correct Branch'
+    # Step 3: Verify AWS credentials are working (debugging step to ensure AWS access)
+    - name: 'Verify AWS CLI'
       run: |
-        if [[ "${{ github.ref_name }}" != "eks-modules" ]]; then
-          echo "This workflow must run on 'eks-modules' branch!"
-          exit 1
-        fi
+        aws sts get-caller-identity
 
-    # Step 3: Set up Terraform
+    # Step 4: Set up Terraform with desired version (use hashicorp/setup-terraform@v1)
     - name: 'Set up Terraform'
       uses: hashicorp/setup-terraform@v1
       with:
         terraform_version: ${{ env.TF_VERSION }}
 
-    # Step 4: Terraform Destroy
+    # Step 5: Initialize Terraform
+    - name: 'Terraform Init'
+      run: terraform init
+
+    # Step 6: Validate Terraform configuration
+    - name: 'Terraform Validate'
+      run: terraform validate
+
+    # Step 7: Terraform Destroy - Automatically destroy resources
     - name: 'Terraform Destroy'
       run: terraform destroy -auto-approve
 
