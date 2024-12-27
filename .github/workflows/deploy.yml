@@ -1,7 +1,7 @@
 name: Terraform Destroy
 
 on:
-  workflow_dispatch: # Manual trigger
+  workflow_dispatch:  # Manual trigger
 
 jobs:
   destroy:
@@ -45,7 +45,7 @@ jobs:
       with:
         terraform_version: ${{ env.TF_VERSION }}
 
-    # Step 4: Destroy Terraform resources
+    # Step 4: Terraform Destroy
     - name: 'Terraform Destroy'
       run: terraform destroy -auto-approve
 
