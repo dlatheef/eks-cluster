@@ -1,34 +1,47 @@
-destroy:
-  name: 'Terraform Destroy'
-  runs-on: ubuntu-latest
+name: Terraform Destroy
 
-  env:
-    AWS_REGION: 'ap-south-1'
-    TF_VERSION: '1.9.8'
+on:
+  workflow_dispatch:  # Allows manual triggering of the destroy job
 
-  steps:
-  - name: 'Checkout GitHub repository'
-    uses: actions/checkout@v3
+jobs:
+  destroy:
+    name: 'Terraform Destroy'
+    runs-on: ubuntu-latest
 
-  # Configure AWS credentials
-  - name: 'Configure AWS credentials'
-    uses: aws-actions/configure-aws-credentials@v2
-    with:
-      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      aws-region: ${{ env.AWS_REGION }}
+    env:
+      AWS_REGION: 'ap-south-1'  # Specify your AWS region
+      TF_VERSION: '1.9.8'       # Specify your desired Terraform version
 
-  - name: 'Set up Terraform'
-    uses: hashicorp/setup-terraform@v1
-    with:
-      terraform_version: ${{ env.TF_VERSION }}
+    steps:
+    - name: 'Checkout GitHub repository'
+      uses: actions/checkout@v2
+      with:
+        ref: eks-modules  # Explicitly checkout the 'eks-modules' branch
 
-  - name: 'Terraform Init'
-    run: terraform init
+    # Configure AWS credentials
+    - name: 'Configure AWS credentials'
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
 
-  - name: 'Terraform Destroy Plan'
-    run: terraform plan -destroy -out=destroyplan
+    - name: 'Verify Current Branch'
+      run: echo "Running on branch: ${{ github.ref_name }} (Expected: eks-modules)"
+    
+    # Optional: Fail if the branch is not eks-modules
+    - name: 'Ensure Correct Branch'
+      run: |
+        if [[ "${{ github.ref_name }}" != "eks-modules" ]]; then
+          echo "This workflow can only be run on the 'eks-modules' branch!"
+          exit 1
+        fi
 
-  - name: 'Terraform Destroy'
-    run: terraform apply -auto-approve destroyplan
+    - name: 'Set up Terraform'
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: 'Terraform Destroy'
+      run: terraform destroy -auto-approve
 
