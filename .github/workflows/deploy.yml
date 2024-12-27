@@ -1,7 +1,7 @@
 name: Terraform Destroy
 
 on:
-  workflow_dispatch:  # Allows manual triggering of the destroy job
+  workflow_dispatch: # Manual trigger
 
 jobs:
   destroy:
@@ -9,16 +9,17 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      AWS_REGION: 'ap-south-1'  # Specify your AWS region
-      TF_VERSION: '1.9.8'       # Specify your desired Terraform version
+      AWS_REGION: 'ap-south-1'  # AWS region
+      TF_VERSION: '1.9.8'       # Terraform version
 
     steps:
+    # Step 1: Checkout the correct branch
     - name: 'Checkout GitHub repository'
       uses: actions/checkout@v2
       with:
-        ref: eks-modules  # Explicitly checkout the 'eks-modules' branch
+        ref: eks-modules  # Checkout the eks-modules branch
 
-    # Configure AWS credentials
+    # Step 2: Configure AWS credentials
     - name: 'Configure AWS credentials'
       uses: aws-actions/configure-aws-credentials@v2
       with:
@@ -26,22 +27,25 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+    # Optional: Debugging step to ensure branch is correct
     - name: 'Verify Current Branch'
-      run: echo "Running on branch: ${{ github.ref_name }} (Expected: eks-modules)"
-    
-    # Optional: Fail if the branch is not eks-modules
+      run: echo "Branch: ${{ github.ref_name }}"
+
+    # Optional: Fail if not on eks-modules branch
     - name: 'Ensure Correct Branch'
       run: |
         if [[ "${{ github.ref_name }}" != "eks-modules" ]]; then
-          echo "This workflow can only be run on the 'eks-modules' branch!"
+          echo "This workflow must run on 'eks-modules' branch!"
           exit 1
         fi
 
+    # Step 3: Set up Terraform
     - name: 'Set up Terraform'
       uses: hashicorp/setup-terraform@v1
       with:
         terraform_version: ${{ env.TF_VERSION }}
 
+    # Step 4: Destroy Terraform resources
     - name: 'Terraform Destroy'
       run: terraform destroy -auto-approve
 
